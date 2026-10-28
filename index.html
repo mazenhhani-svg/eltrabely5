@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>نظام مسح وعرض تفاصيل الأوردر</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; text-align: right; }
+    .scanner-container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    #reader { width: 100%; border-radius: 6px; overflow: hidden; }
+    .result-box { margin-top: 20px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; }
+    .print-btn { background: #1b365d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="scanner-container" id="scannerSection">
+    <h2>مسح كيو آر كود الأوردر</h2>
+    <div id="reader"></div>
+    <p style="text-align: center; color: #64748b;">قم بتوجيه الكاميرا نحو الكيو آر كود الموجود في الأوردر</p>
+  </div>
+
+  <div class="result-box" id="resultSection">
+    <button onclick="resetScanner()" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-bottom: 15px;">مسح كود آخر 🔄</button>
+    <div id="orderContent">
+      <!-- سيتم حقن قالب 1_3 هنا ديناميكياً -->
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ طباعة الإذن</button>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzUPxCeWed6dX0ZsD2S-0G84NOxQ5IdDX78AnefMfwY1Z1couYkjpLXHsSjeQfee6OYpw/exec"; // ضع رابط الـ Web App هنا
+
+    function onScanSuccess(decodedText, decodedResult) {
+      // إيقاف الكاميرا مؤقتاً عند القراءة الناجحة
+      html5QrcodeScanner.clear();
+      document.getElementById('scannerSection').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'block';
+      
+      fetchOrderData(decodedText);
+    }
+
+    function fetchOrderData(code) {
+      document.getElementById('orderContent').innerHTML = "<p style='text-align:center;'>جاري البحث عن بيانات الأوردر...</p>";
+      
+      fetch(WEB_APP_URL + "?code=" + encodeURIComponent(code))
+        .then(response => response.json())
+        .then(res => {
+          if (res.success) {
+            renderOrderTemplate(res.data);
+          } else {
+            document.getElementById('orderContent').innerHTML = "<p style='color:red; text-align:center;'>لم يتم العثور على أوردر بهذا الكود!</p>";
+          }
+        })
+        .catch(err => {
+          document.getElementById('orderContent').innerHTML = "<p style='color:red; text-align:center;'>حدث خطأ أثناء الاتصال بالخادم.</p>";
+        });
+    }
+
+    function renderOrderTemplate(d) {
+      // قالب العرض المطابق لطلبك تماماً (1_3.html)
+      const html = `
+        <table style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #1b365d; margin-bottom: 15px; padding-bottom: 10px;">
+          <tr>
+            <td style="width: 25%; text-align: right;"><img src="" style="max-height:80px;" /></td>
+            <td style="width: 50%; text-align: center;">
+              <h1 style="margin: 0; color: #1b365d; font-size: 22px;">إذن إستلام أوردر</h1>
+              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">تاريخ الطباعة: ${d.printDate}</p>
+            </td>
+            <td style="width: 25%; text-align: left;"><img src="${d.qrCodeUrl}" style="max-height: 70px; border: 1px solid #cbd5e1; padding: 2px;" /></td>
+          </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d; width: 14%;">رقم الطلب:</td>
+            <td style="width: 36%;"><strong>${d.orderCode}</strong></td>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d; width: 14%;">تاريخ الطلب:</td>
+            <td style="width: 36%;">${d.orderDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d;">اسم العميل:</td>
+            <td>${d.clientName}</td>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d;">تاريخ التسليم:</td>
+            <td>${d.deliveryDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d;">المشتري:</td>
+            <td>${d.buyerName}</td>
+            <td style="padding: 8px; font-weight: bold; color: #1b365d;">أمر التشغيل:</td>
+            <td>${d.workOrder}</td>
+          </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; border: 1px solid #cbd5e1; background-color: #ffffff;">
+          <tr>
+            <td style="width: 120px; text-align: center; padding: 8px;">
+              <img src="${d.comboImage}" style="max-height: 80px; max-width: 100px; object-fit: contain;" />
+            </td>
+            <td style="padding: 8px;">
+              <div style="font-size: 14px; font-weight: bold; color: #1b365d;">كود الطقم: <strong>${d.comboCode}</strong></div>
+              <div style="font-size: 12px; color: #475569;">اسم الطقم: <strong>${d.comboName}</strong></div>
+            </td>
+          </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center;">
+          <thead>
+            <tr style="background-color: #1b365d; color: #ffffff;">
+              <th style="padding: 8px; border: 1px solid #1b365d;">م</th>
+              <th style="padding: 8px; border: 1px solid #1b365d;">كود الصنف</th>
+              <th style="padding: 8px; border: 1px solid #1b365d;">اسم الصنف / المكون</th>
+              <th style="padding: 8px; border: 1px solid #1b365d;">الكمية المطلوبة</th>
+              <th style="padding: 8px; border: 1px solid #1b365d;">صورة الصنف</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${d.tableRows}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background-color: #e2e8f0; color: #1b365d;">
+              <td colspan="3" style="text-align: left; padding: 8px; padding-left: 15px;">إجمالي كمية الأصناف:</td>
+              <td style="padding: 8px;">${d.totalQuantity}</td>
+              <td style="padding: 8px;">-</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top: 15px; padding: 10px; border: 1px dashed #94a3b8; border-radius: 6px; background-color: #fffbe6; font-size: 13px;">
+          <strong style="color: #b45309;">ملاحظات الطلب:</strong> ${d.notes}
+        </div>
+      `;
+      document.getElementById('orderContent').innerHTML = html;
+    }
+
+    function resetScanner() {
+      document.getElementById('resultSection').style.display = 'none';
+      document.getElementById('scannerSection').style.display = 'block';
+      initScanner();
+    }
+
+    let html5QrcodeScanner;
+    function initScanner() {
+      html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+      html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    window.onload = initScanner;
+  </script>
+</body>
+</html>
