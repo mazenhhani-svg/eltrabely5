@@ -2,38 +2,86 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نظام مسح وعرض تفاصيل الأوردر</title>
+  <title>إذن إستلام أوردر</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; text-align: right; }
-    .scanner-container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    #reader { width: 100%; border-radius: 6px; overflow: hidden; }
-    .result-box { margin-top: 20px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; }
-    .print-btn { background: #1b365d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+    body { 
+      font-family: 'Tajawal', sans-serif; 
+      background: #f1f5f9; 
+      margin: 0; 
+      padding: 20px; 
+      text-align: right; 
+    }
+    .scanner-container { 
+      max-width: 700px; 
+      margin: 0 auto; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    }
+    #reader { 
+      width: 100%; 
+      border-radius: 6px; 
+      overflow: hidden; 
+    }
+    .result-box { 
+      max-width: 750px; 
+      margin: 0 auto; 
+      background: #fff; 
+      padding: 25px; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+      display: none; 
+    }
+    .print-btn { 
+      background: #1b365d; 
+      color: white; 
+      border: none; 
+      padding: 10px 20px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 16px; 
+      margin-top: 15px; 
+    }
+    
+    /* تنسيق الطباعة ليكون مطابقاً للصورة الأولى تماماً */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .scanner-container, .print-btn, .reset-btn { display: none !important; }
+      .result-box { display: block !important; box-shadow: none; padding: 0; max-width: 100%; }
+    }
   </style>
 </head>
 <body>
 
   <div class="scanner-container" id="scannerSection">
-    <h2>مسح كيو آر كود الأوردر</h2>
+    <h2 style="text-align: center; color: #1b365d;">مسح كيو آر كود الأوردر</h2>
     <div id="reader"></div>
-    <p style="text-align: center; color: #64748b;">قم بتوجيه الكاميرا نحو الكيو آر كود الموجود في الأوردر</p>
+    <p style="text-align: center; color: #64748b; margin-top: 10px;">قم بتوجيه الكاميرا نحو كود الأوردر</p>
   </div>
 
   <div class="result-box" id="resultSection">
-    <button onclick="resetScanner()" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-bottom: 15px;">مسح كود آخر 🔄</button>
+    <button class="reset-btn" onclick="resetScanner()" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-weight: bold;">🔄 مسح كود آخر</button>
+    
     <div id="orderContent">
-      <!-- سيتم حقن قالب 1_3 هنا ديناميكياً -->
+      <!-- سيتم حقن تفاصيل الأوردر هنا -->
     </div>
-    <button class="print-btn" onclick="window.print()">🖨️ طباعة الإذن</button>
+
+    <div style="text-align: center;">
+      <button class="print-btn" onclick="window.print()">🖨️ طباعة الإذن</button>
+    </div>
   </div>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzUPxCeWed6dX0ZsD2S-0G84NOxQ5IdDX78AnefMfwY1Z1couYkjpLXHsSjeQfee6OYpw/exec"; // ضع رابط الـ Web App هنا
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzUPxCeWed6dX0ZsD2S-0G84NOxQ5IdDX78AnefMfwY1Z1couYkjpLXHsSjeQfee6OYpw/exec"; // ضع رابط جوجل أبس سكريبت هنا
 
     function onScanSuccess(decodedText, decodedResult) {
-      // إيقاف الكاميرا مؤقتاً عند القراءة الناجحة
-      html5QrcodeScanner.clear();
+      if(html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(error => {
+          console.error("Failed to clear html5QrcodeScanner. ", error);
+        });
+      }
       document.getElementById('scannerSection').style.display = 'none';
       document.getElementById('resultSection').style.display = 'block';
       
@@ -41,7 +89,7 @@
     }
 
     function fetchOrderData(code) {
-      document.getElementById('orderContent').innerHTML = "<p style='text-align:center;'>جاري البحث عن بيانات الأوردر...</p>";
+      document.getElementById('orderContent').innerHTML = "<p style='text-align:center; padding: 30px;'>جاري استدعاء بيانات الأوردر...</p>";
       
       fetch(WEB_APP_URL + "?code=" + encodeURIComponent(code))
         .then(response => response.json())
@@ -58,60 +106,68 @@
     }
 
     function renderOrderTemplate(d) {
-      // قالب العرض المطابق لطلبك تماماً (1_3.html)
       const html = `
+        <!-- رأس الفاتورة -->
         <table style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #1b365d; margin-bottom: 15px; padding-bottom: 10px;">
           <tr>
-            <td style="width: 25%; text-align: right;"><img src="" style="max-height:80px;" /></td>
-            <td style="width: 50%; text-align: center;">
-              <h1 style="margin: 0; color: #1b365d; font-size: 22px;">إذن إستلام أوردر</h1>
-              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">تاريخ الطباعة: ${d.printDate}</p>
+            <td style="width: 25%; text-align: right; vertical-align: middle;">
+              <img src="${d.qrCodeUrl}" style="max-height: 75px; border: 1px solid #cbd5e1; padding: 2px;" />
             </td>
-            <td style="width: 25%; text-align: left;"><img src="${d.qrCodeUrl}" style="max-height: 70px; border: 1px solid #cbd5e1; padding: 2px;" /></td>
+            <td style="width: 50%; text-align: center; vertical-align: middle;">
+              <h1 style="margin: 0; color: #1b365d; font-size: 24px; font-weight: bold;">إذن إستلام أوردر</h1>
+              <p style="margin: 4px 0 0 0; color: #475569; font-size: 11px;">تاريخ الطباعة: ${d.printDate}</p>
+            </td>
+            <td style="width: 25%; text-align: left; vertical-align: middle;">
+              <!-- لوجو الشركة -->
+              <div style="font-weight: bold; color: #1b365d; font-size: 16px; border: 1px solid #e2e8f0; display: inline-block; padding: 10px; background: #fafafa;">MOMA</div>
+            </td>
           </tr>
         </table>
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <!-- بيانات الطلب الأساسية -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;">
           <tr>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d; width: 14%;">رقم الطلب:</td>
-            <td style="width: 36%;"><strong>${d.orderCode}</strong></td>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d; width: 14%;">تاريخ الطلب:</td>
-            <td style="width: 36%;">${d.orderDate}</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d; width: 12%;">رقم الطلب:</td>
+            <td style="width: 38%;"><strong>${d.orderCode}</strong></td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d; width: 15%; text-align: left;">تاريخ الطلب:</td>
+            <td style="width: 35%; text-align: right;">${d.orderDate}</td>
           </tr>
           <tr>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d;">اسم العميل:</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d;">اسم العميل:</td>
             <td>${d.clientName}</td>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d;">تاريخ التسليم:</td>
-            <td>${d.deliveryDate}</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d; text-align: left;">تاريخ التسليم:</td>
+            <td style="text-align: right;">${d.deliveryDate}</td>
           </tr>
           <tr>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d;">المشتري:</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d;">المشتري:</td>
             <td>${d.buyerName}</td>
-            <td style="padding: 8px; font-weight: bold; color: #1b365d;">أمر التشغيل:</td>
-            <td>${d.workOrder}</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #1b365d; text-align: left;">أمر التشغيل:</td>
+            <td style="text-align: right;">${d.workOrder}</td>
           </tr>
         </table>
 
+        <!-- بيانات الطقم -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; border: 1px solid #cbd5e1; background-color: #ffffff;">
           <tr>
-            <td style="width: 120px; text-align: center; padding: 8px;">
-              <img src="${d.comboImage}" style="max-height: 80px; max-width: 100px; object-fit: contain;" />
+            <td style="padding: 8px; text-align: right;">
+              <div style="font-size: 14px; font-weight: bold; color: #1b365d;">كود الطقم: <strong style="color: #000;">${d.comboCode}</strong></div>
+              <div style="font-size: 12px; color: #475569; margin-top: 4px;">اسم الطقم: <strong style="color: #000;">${d.comboName}</strong></div>
             </td>
-            <td style="padding: 8px;">
-              <div style="font-size: 14px; font-weight: bold; color: #1b365d;">كود الطقم: <strong>${d.comboCode}</strong></div>
-              <div style="font-size: 12px; color: #475569;">اسم الطقم: <strong>${d.comboName}</strong></div>
+            <td style="width: 100px; text-align: center; padding: 8px;">
+              <img src="${d.comboImage}" style="max-height: 70px; max-width: 90px; object-fit: contain; border: 1px solid #eee;" />
             </td>
           </tr>
         </table>
 
+        <!-- جدول المكونات والأصناف -->
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center;">
           <thead>
             <tr style="background-color: #1b365d; color: #ffffff;">
-              <th style="padding: 8px; border: 1px solid #1b365d;">م</th>
-              <th style="padding: 8px; border: 1px solid #1b365d;">كود الصنف</th>
-              <th style="padding: 8px; border: 1px solid #1b365d;">اسم الصنف / المكون</th>
-              <th style="padding: 8px; border: 1px solid #1b365d;">الكمية المطلوبة</th>
-              <th style="padding: 8px; border: 1px solid #1b365d;">صورة الصنف</th>
+              <th style="padding: 8px; border: 1px solid #1b365d; width: 8%;">م</th>
+              <th style="padding: 8px; border: 1px solid #1b365d; width: 20%;">كود الصنف</th>
+              <th style="padding: 8px; border: 1px solid #1b365d; width: 37%;">اسم الصنف / المكون</th>
+              <th style="padding: 8px; border: 1px solid #1b365d; width: 15%;">الكمية المطلوبة</th>
+              <th style="padding: 8px; border: 1px solid #1b365d; width: 20%;">صورة الصنف</th>
             </tr>
           </thead>
           <tbody>
@@ -119,16 +175,31 @@
           </tbody>
           <tfoot>
             <tr style="font-weight: bold; background-color: #e2e8f0; color: #1b365d;">
-              <td colspan="3" style="text-align: left; padding: 8px; padding-left: 15px;">إجمالي كمية الأصناف:</td>
-              <td style="padding: 8px;">${d.totalQuantity}</td>
-              <td style="padding: 8px;">-</td>
+              <td colspan="3" style="text-align: left; padding: 8px; padding-left: 20px;">إجمالي كمية الأصناف:</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1;">${d.totalQuantity}</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1;">-</td>
             </tr>
           </tfoot>
         </table>
 
-        <div style="margin-top: 15px; padding: 10px; border: 1px dashed #94a3b8; border-radius: 6px; background-color: #fffbe6; font-size: 13px;">
-          <strong style="color: #b45309;">ملاحظات الطلب:</strong> ${d.notes}
+        <!-- ملاحظات الطلب -->
+        <div style="margin-top: 15px; padding: 8px 12px; border: 1px dashed #cbd5e1; border-radius: 4px; background-color: #fffdf4; font-size: 12px;">
+          <strong style="color: #b45309;">ملاحظات الطلب:</strong> ${d.notes || 'لا توجد ملاحظات'}
         </div>
+
+        <!-- التوقيعات -->
+        <table style="width: 100%; margin-top: 40px; font-size: 13px; text-align: center;">
+          <tr>
+            <td style="width: 50%; font-weight: bold; color: #1b365d;">
+              مراجعة الجودة
+              <div style="margin-top: 35px; color: #94a3b8; font-weight: normal;">..............................................</div>
+            </td>
+            <td style="width: 50%; font-weight: bold; color: #1b365d;">
+              اعتماد المستلم
+              <div style="margin-top: 35px; color: #94a3b8; font-weight: normal;">..............................................</div>
+            </td>
+          </tr>
+        </table>
       `;
       document.getElementById('orderContent').innerHTML = html;
     }
@@ -141,8 +212,20 @@
 
     let html5QrcodeScanner;
     function initScanner() {
-      html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-      html5QrcodeScanner.render(onScanSuccess);
+      // إعداد الكاميرا الخلفية كخيار أساسي للموبايل (environment)
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { 
+          fps: 10, 
+          qrbox: 250,
+          aspectRatio: 1.0,
+          facingMode: "environment" // تجعل الكاميرا الخلفية تفتح تلقائياً في الجوال
+        }, 
+        false
+      );
+      html5QrcodeScanner.render(onScanSuccess, (errorMessage) => {
+        // تجاهل أخطاء المسح المؤقتة أثناء توجيه الكاميرا
+      });
     }
 
     window.onload = initScanner;
